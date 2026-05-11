@@ -1,0 +1,2 @@
+class Bookmaker < ApplicationRecord
+end
