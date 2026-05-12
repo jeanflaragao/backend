@@ -4,23 +4,26 @@ module Api
       def index
         bookmakers = Bookmaker.all
 
-        render json: bookmakers, status: :ok
+        render json: BookmakerSerializer.new(bookmakers).serialize, status: :ok
       end
 
       def show
         bookmaker = Bookmaker.find(params[:id])
 
-        render json: bookmaker, status: :ok
+        render json: BookmakerSerializer.new(bookmaker).serialize, status: :ok
       end
 
       def create
-        bookmaker = Bookmaker.new(bookmaker_params)
+        result = Bookmakers::CreateService.call(
+          params: bookmaker_params
+        )
 
-        if bookmaker.save
-          render json: bookmaker, status: :created
+        if result[:success]
+          render json: BookmakerSerializer.new(result[:bookmaker]).serialize,
+          status: :created
         else
           render json: {
-            errors: bookmaker.errors.full_messages
+            errors: result[:errors]
           }, status: :unprocessable_entity
         end
       end
