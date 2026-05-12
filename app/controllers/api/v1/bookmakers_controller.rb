@@ -14,13 +14,15 @@ module Api
       end
 
       def create
-        bookmaker = Bookmaker.new(bookmaker_params)
+        result = Bookmakers::CreateService.call(
+          params: bookmaker_params
+        )
 
-        if bookmaker.save
-          render json: bookmaker, status: :created
+        if result[:success]
+          render json: result[:bookmaker], status: :created
         else
           render json: {
-            errors: bookmaker.errors.full_messages
+            errors: result[:errors]
           }, status: :unprocessable_entity
         end
       end
