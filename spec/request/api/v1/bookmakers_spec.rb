@@ -92,4 +92,22 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
       expect(body["errors"]).to include("Name can't be blank")
     end
   end
+
+  describe "GET /api/v1/bookmakers/:id" do
+    it "returns serialized bookmaker data" do
+      bookmaker = create(:bookmaker)
+
+      get "/api/v1/bookmakers/#{bookmaker.id}"
+
+      json = response.parsed_body
+
+      expect(json.keys).to contain_exactly(
+        "id",
+        "name",
+        "website",
+        "country",
+        "status"
+      )
+    end
+  end
 end

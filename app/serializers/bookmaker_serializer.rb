@@ -6,4 +6,8 @@ class BookmakerSerializer
              :website,
              :country,
              :status
+
+  attribute :homepage  do |bookmaker|
+    bookmaker.website
+  end
 end
