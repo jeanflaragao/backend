@@ -1,7 +1,7 @@
 module Bookmakers
   class CreateService
     def self.call(params:)
-      new(params:).call
+      new(params: params).call
     end
 
     def initialize(params:)
