@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  has_secure_password
+  has_many :bookmakers, dependent: :destroy
 
   validates :email,
             presence: true,
