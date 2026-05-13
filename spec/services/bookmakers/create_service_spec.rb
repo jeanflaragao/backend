@@ -2,9 +2,12 @@ require "rails_helper"
 
 RSpec.describe Bookmakers::CreateService do
   describe ".call" do
+    let(:user) { create(:user) }
+
     context "with valid params" do
       it "creates a bookmaker" do
         result = described_class.call(
+          user: user,
           params: {
             name: "Bet365"
           }
@@ -17,9 +20,10 @@ RSpec.describe Bookmakers::CreateService do
 
     context "with invalid params" do
       it "returns errors" do
-        create(:bookmaker, name: "Bet365")
+        create(:bookmaker, name: "Bet365", user: user)
 
         result = described_class.call(
+          user: user,
           params: {
             name: "Bet365"
           }
