@@ -8,15 +8,13 @@ module Authenticatable
   private
 
   def authenticate_user!
-    header = request.headers["Authorization"]
+    token = request.headers["Authorization"]&.split(" ")&.last
 
-    token = header.split(" ").last if header.present?
+    return render_unauthorized if token.blank?
 
-    decoded = Jwt::Decoder.call(token: token)
+    payload = Jwt::Decoder.call(token:)
 
-    @current_user = User.find_by(id: decoded["user_id"]) if decoded
-
-    render_unauthorized unless @current_user
+    @current_user = User.find(payload["user_id"])
   end
 
   def current_user

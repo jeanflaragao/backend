@@ -6,7 +6,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
 
   describe "GET /api/v1/bookmakers" do
     before do
-      create_list(:bookmaker, 3)
+      create_list(:bookmaker, 3, user: user)
     end
 
     context "when authenticated" do
@@ -27,7 +27,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
   end
 
   describe "GET /api/v1/bookmakers/:id" do
-    let(:bookmaker) { create(:bookmaker) }
+    let(:bookmaker) { create(:bookmaker, user: user) }
 
     it "returns the bookmaker" do
       get "/api/v1/bookmakers/#{bookmaker.id}", headers: headers
@@ -47,7 +47,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
     end
 
     it "returns serialized bookmaker data" do
-      bookmaker = create(:bookmaker)
+      bookmaker = create(:bookmaker, user: user)
 
       get "/api/v1/bookmakers/#{bookmaker.id}", headers: headers
 
