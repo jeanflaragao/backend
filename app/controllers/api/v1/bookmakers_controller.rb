@@ -1,6 +1,8 @@
 module Api
   module V1
     class BookmakersController < ApplicationController
+      include Authenticatable
+
       def index
         bookmakers = Bookmaker.all
 

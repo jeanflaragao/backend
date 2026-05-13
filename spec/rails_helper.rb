@@ -68,6 +68,9 @@ RSpec.configure do |config|
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
   #
+  #
+  Dir[Rails.root.join("spec/support/**/*.rb")].sort.each { |f| require f }
 
   config.include FactoryBot::Syntax::Methods
+  config.include AuthenticationHelper, type: :request
 end

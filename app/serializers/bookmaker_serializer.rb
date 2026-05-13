@@ -3,7 +3,6 @@ class BookmakerSerializer
 
   attributes :id,
              :name,
-             :website,
              :country,
              :status
 

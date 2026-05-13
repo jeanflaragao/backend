@@ -1,9 +1,9 @@
 Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
-      resources :bookmakers, only: [:create, :index, :show]
-
       get "health", to: "health#show"
+      post "/login", to: "authentication#create"
+      resources :bookmakers, only: [ :create, :index, :show ]
     end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
