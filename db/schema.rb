@@ -25,5 +25,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_12_141014) do
     t.index ["name"], name: "index_bookmakers_on_name", unique: true
   end
 
+  create_table "users", force: :cascade do |t|
+    t.string "email"
+    t.string "password_digest"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
 end
