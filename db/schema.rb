@@ -24,4 +24,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_05_12_141014) do
     t.string "currency"
     t.index ["name"], name: "index_bookmakers_on_name", unique: true
   end
+
+
 end
