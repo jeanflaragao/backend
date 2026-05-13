@@ -1,10 +1,11 @@
 module Bookmakers
   class CreateService
-    def self.call(params:)
-      new(params: params).call
+    def self.call(user:, params:)
+      new(user: user, params: params).call
     end
 
-    def initialize(params:)
+    def initialize(user:, params:)
+      @user = user
       @params = params
     end
 
@@ -12,7 +13,7 @@ module Bookmakers
       bookmaker = nil
 
       ActiveRecord::Base.transaction do
-        bookmaker = Bookmaker.create!(@params)
+        bookmaker = @user.bookmakers.create!(@params)
       end
 
       success(bookmaker)
