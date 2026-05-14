@@ -4,13 +4,15 @@ module Api
       include Authenticatable
 
       def index
-        bookmakers = current_user.bookmakers
+        bookmakers = policy_scope(Bookmaker)
 
         render json: BookmakerSerializer.new(bookmakers).serialize, status: :ok
       end
 
       def show
-        bookmaker = current_user.bookmakers.find(params[:id])
+        bookmaker = Bookmaker.find(params[:id])
+
+        authorize bookmaker
 
         render json: BookmakerSerializer.new(bookmaker).serialize, status: :ok
       end
