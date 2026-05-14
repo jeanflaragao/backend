@@ -39,6 +39,7 @@ gem "alba"
 
 gem "bcrypt", "~> 3.1.7"
 gem "jwt"
+gem "pundit"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
