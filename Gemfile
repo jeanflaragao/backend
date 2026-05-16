@@ -37,9 +37,17 @@ gem "alba"
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 # gem "rack-cors"
 
+# BCrypt for secure passwords [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
+
+# JWT for JSON Web Token authentication [https://github.com/jwt/ruby-jwt]
 gem "jwt"
+
+# Pundit for authorization [https://github.com/varvet/pundit]
 gem "pundit"
+
+# Pagy for pagination with Active Record [https://github.com/ddnexus/pagy]
+gem "pagy"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
