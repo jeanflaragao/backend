@@ -1,8 +1,10 @@
 class ApplicationController < ActionController::API
   include Pundit::Authorization
+  include Pagy::Backend
 
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
   rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
+  rescue_from Pagy::OverflowError, with: :render_not_found
 
   private
 
