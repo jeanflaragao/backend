@@ -4,12 +4,14 @@ module Api
       include Authenticatable
 
       def index
-        ordered_bookmakers = policy_scope(Bookmaker)
-          .order(created_at: :desc)
+        scope = policy_scope(Bookmaker)
 
-        @pagy, bookmakers = pagy(
-          ordered_bookmakers
+        scope = Bookmakers::IndexQuery.call(
+          scope: scope,
+          filters: params
         )
+
+        @pagy, bookmakers = pagy(scope)
 
         serialized_data = BookmakerSerializer.new(bookmakers).serializable_hash
 
