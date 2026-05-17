@@ -6,7 +6,7 @@ module Api
       def index
         scope = policy_scope(Bookmaker)
 
-        scope = Bookmakers::IndexQuery.call(
+        scope = Bookmakers::Query.call(
           scope: scope,
           filters: params
         )
