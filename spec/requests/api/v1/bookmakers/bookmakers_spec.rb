@@ -67,7 +67,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
     let(:valid_params) do
       {
         bookmaker: {
-          name: "Betano",
+          name: "Betano POST",
           website: "https://betano.com",
           country: "Brazil",
           status: "active"
@@ -84,7 +84,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
 
       body = response.parsed_body
 
-      expect(body["name"]).to eq("Betano")
+      expect(body["name"]).to eq("Betano POST")
     end
 
     it "returns errors for duplicate bookmaker name" do
@@ -115,6 +115,117 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
       body = response.parsed_body
 
       expect(body["errors"]).to include("Name can't be blank")
+    end
+  end
+
+  describe "FILTER /api/v1/bookmakers" do
+    let(:params) { {} }
+
+    subject(:make_request) do
+      get "/api/v1/bookmakers",
+          params: params,
+          headers: headers
+    end
+
+    let!(:betano) do
+      create(
+        :bookmaker,
+        user: user,
+        name: "Betano FILTER",
+        status: "active",
+        country: "Brazil"
+      )
+    end
+
+    let!(:stake) do
+      create(
+        :bookmaker,
+        user: user,
+        name: "Stake",
+        status: "inactive",
+        country: "Brazil"
+      )
+    end
+
+    let!(:bet365) do
+      create(
+        :bookmaker,
+        user: user,
+        name: "Bet365",
+        status: "active",
+        country: "United Kingdom"
+      )
+    end
+
+    context "when filtering by status" do
+      let(:params) do
+        {
+          status: "active"
+        }
+      end
+
+      it "returns only active bookmakers" do
+        get "/api/v1/bookmakers",
+          headers: headers,
+          params: params
+
+        body = response.parsed_body
+
+        names = body["data"].map do |bookmaker|
+          bookmaker["name"]
+        end
+
+        expect(names).to contain_exactly(
+          "Betano FILTER",
+          "Bet365"
+        )
+      end
+    end
+
+    context "when filtering by country" do
+      let(:params) do
+        {
+          country: "Brazil"
+        }
+      end
+
+      it "returns only Brazilian bookmakers" do
+        make_request
+
+        body = response.parsed_body
+
+        names = body["data"].map do |bookmaker|
+          bookmaker["name"]
+        end
+
+        expect(names).to contain_exactly(
+          "Betano FILTER",
+          "Stake"
+        )
+      end
+    end
+
+    context "when filtering by search" do
+      let(:params) do
+        {
+          search: "bet"
+        }
+      end
+
+      it "returns matching bookmakers" do
+        make_request
+
+        body = response.parsed_body
+
+        names = body["data"].map do |bookmaker|
+          bookmaker["name"]
+        end
+
+        expect(names).to contain_exactly(
+          "Betano FILTER",
+          "Bet365"
+        )
+      end
     end
   end
 end
