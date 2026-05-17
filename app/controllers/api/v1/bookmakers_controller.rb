@@ -4,9 +4,19 @@ module Api
       include Authenticatable
 
       def index
-        bookmakers = policy_scope(Bookmaker)
+        ordered_bookmakers = policy_scope(Bookmaker)
+          .order(created_at: :desc)
 
-        render json: BookmakerSerializer.new(bookmakers).serialize, status: :ok
+        @pagy, bookmakers = pagy(
+          ordered_bookmakers
+        )
+
+        serialized_data = BookmakerSerializer.new(bookmakers).serializable_hash
+
+        render json: {
+          data: serialized_data,
+          meta: pagy_metadata(@pagy)
+        }, status: :ok
       end
 
       def show
