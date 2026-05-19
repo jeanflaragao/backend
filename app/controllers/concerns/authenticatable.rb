@@ -1,9 +1,7 @@
 module Authenticatable
   extend ActiveSupport::Concern
 
-  included do
-    before_action :authenticate_user!
-  end
+  included { before_action :authenticate_user! }
 
   private
 
@@ -12,7 +10,7 @@ module Authenticatable
 
     return render_unauthorized if token.blank?
 
-    payload = Jwt::Decoder.call(token:)
+    payload = Jwt::Decoder.call(token: token)
 
     @current_user = User.find(payload["user_id"])
   end
@@ -22,8 +20,6 @@ module Authenticatable
   end
 
   def render_unauthorized
-    render json: {
-      error: "Unauthorized"
-    }, status: :unauthorized
+    render json: { error: "Unauthorized" }, status: :unauthorized
   end
 end

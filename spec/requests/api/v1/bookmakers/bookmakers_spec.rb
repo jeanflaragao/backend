@@ -5,9 +5,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
   let(:headers) { authenticated_headers(user) }
 
   describe "GET /api/v1/bookmakers" do
-    before do
-      create_list(:bookmaker, 3, user: user)
-    end
+    before { create_list(:bookmaker, 3, user: user) }
 
     context "when authenticated" do
       it "returns all bookmakers" do
@@ -64,6 +62,10 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
   end
 
   describe "POST /api/v1/bookmakers" do
+    subject(:make_request) do
+      post "/api/v1/bookmakers", params: valid_params, headers: headers
+    end
+
     let(:valid_params) do
       {
         bookmaker: {
@@ -75,59 +77,57 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
       }
     end
 
-    it "creates a bookmaker" do
-      expect {
-        post "/api/v1/bookmakers", params: valid_params, headers: headers
-      }.to change(Bookmaker, :count).by(1)
+    let(:response_body) { response.parsed_body }
 
-      expect(response).to have_http_status(:created)
+    context "with valid params" do
+      it "creates a bookmaker" do
+        expect { make_request }.to change(Bookmaker, :count).by(1)
 
-      body = response.parsed_body
+        expect(response).to have_http_status(:created)
 
-      expect(body["name"]).to eq("Betano POST")
+        expect(response_body["name"]).to eq("Betano POST")
+      end
     end
 
-    it "returns errors for duplicate bookmaker name" do
-      post "/api/v1/bookmakers", params: valid_params, headers: headers
+    context "when bookmaker name already exists" do
+      before { create(:bookmaker, user: user, name: "Betano POST") }
 
-      expect(response).to have_http_status(:created)
+      it "returns validation errors" do
+        make_request
 
-      post "/api/v1/bookmakers", params: valid_params, headers: headers
+        expect(response).to have_http_status(:unprocessable_content)
 
-      expect(response).to have_http_status(:unprocessable_content)
+        expect(response_body["errors"]).to include(
+          "Name has already been taken"
+        )
+      end
 
-      body = response.parsed_body
+      context "with invalid params" do
+        let(:params) { { bookmaker: { name: nil } } }
 
-      expect(body["errors"]).to include("Name has already been taken")
-    end
+        it "returns validation errors" do
+          invalid_params = { bookmaker: { name: nil } }
 
-    it "returns validation errors" do
-      invalid_params = {
-        bookmaker: {
-          name: nil
-        }
-      }
+          post "/api/v1/bookmakers", params: invalid_params, headers: headers
 
-      post "/api/v1/bookmakers", params: invalid_params, headers: headers
+          expect(response).to have_http_status(:unprocessable_content)
 
-      expect(response).to have_http_status(:unprocessable_content)
+          body = response.parsed_body
 
-      body = response.parsed_body
-
-      expect(body["errors"]).to include("Name can't be blank")
+          expect(body["errors"]).to include("Name can't be blank")
+        end
+      end
     end
   end
 
   describe "FILTER /api/v1/bookmakers" do
-    let(:params) { {} }
-
     subject(:make_request) do
-      get "/api/v1/bookmakers",
-          params: params,
-          headers: headers
+      get "/api/v1/bookmakers", params: params, headers: headers
     end
 
-    let!(:betano) do
+    let(:params) { {} }
+
+    before do
       create(
         :bookmaker,
         user: user,
@@ -135,9 +135,7 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
         status: "active",
         country: "Brazil"
       )
-    end
 
-    let!(:stake) do
       create(
         :bookmaker,
         user: user,
@@ -145,9 +143,6 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
         status: "inactive",
         country: "Brazil"
       )
-    end
-
-    let!(:bet365) do
       create(
         :bookmaker,
         user: user,
@@ -158,73 +153,58 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
     end
 
     context "when filtering by status" do
-      let(:params) do
-        {
-          status: "active"
-        }
-      end
+      let(:params) { { status: "active" } }
 
       it "returns only active bookmakers" do
-        get "/api/v1/bookmakers",
-          headers: headers,
-          params: params
+        get "/api/v1/bookmakers", headers: headers, params: params
 
         body = response.parsed_body
 
-        names = body["data"].map do |bookmaker|
-          bookmaker["name"]
-        end
+        names = body["data"].map { |bookmaker| bookmaker["name"] }
 
-        expect(names).to contain_exactly(
-          "Betano FILTER",
-          "Bet365"
-        )
+        expect(names).to contain_exactly("Betano FILTER", "Bet365")
       end
     end
 
     context "when filtering by country" do
-      let(:params) do
-        {
-          country: "Brazil"
-        }
-      end
+      let(:params) { { country: "Brazil" } }
 
       it "returns only Brazilian bookmakers" do
         make_request
 
         body = response.parsed_body
 
-        names = body["data"].map do |bookmaker|
-          bookmaker["name"]
-        end
+        names = body["data"].map { |bookmaker| bookmaker["name"] }
 
-        expect(names).to contain_exactly(
-          "Betano FILTER",
-          "Stake"
-        )
+        expect(names).to contain_exactly("Betano FILTER", "Stake")
       end
     end
 
     context "when filtering by search" do
-      let(:params) do
-        {
-          search: "bet"
-        }
-      end
+      let(:params) { { search: "bet" } }
 
       it "returns matching bookmakers" do
         make_request
 
         body = response.parsed_body
 
-        names = body["data"].map do |bookmaker|
-          bookmaker["name"]
-        end
+        names = body["data"].map { |bookmaker| bookmaker["name"] }
 
-        expect(names).to contain_exactly(
-          "Betano FILTER",
-          "Bet365"
-        )
+        expect(names).to contain_exactly("Betano FILTER", "Bet365")
+      end
+    end
+
+    context "when sorting by name asc" do
+      let(:params) { { sort: "name", direction: "asc" } }
+
+      it "returns bookmakers sorted by name ascending" do
+        make_request
+
+        body = response.parsed_body
+
+        names = body["data"].map { |bookmaker| bookmaker["name"] }
+
+        expect(names).to eq(["Bet365", "Betano FILTER", "Stake"])
       end
     end
   end

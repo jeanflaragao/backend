@@ -4,21 +4,28 @@ module Api
       include Authenticatable
 
       def index
-        scope = policy_scope(Bookmaker)
+        filtered_bookmakers =
+          Bookmakers::FilterQuery.call(
+            relation: policy_scope(Bookmaker),
+            filters: filter_params
+          )
 
-        scope = Bookmakers::Query.call(
-          scope: scope,
-          filters: params
-        )
+        ordered_bookmakers =
+          Bookmakers::SortQuery.call(
+            relation: filtered_bookmakers,
+            sort: params[:sort],
+            direction: params[:direction]
+          )
 
-        @pagy, bookmakers = pagy(scope)
+        @pagy, bookmakers = pagy(ordered_bookmakers)
 
         serialized_data = BookmakerSerializer.new(bookmakers).serializable_hash
 
         render json: {
-          data: serialized_data,
-          meta: pagy_metadata(@pagy)
-        }, status: :ok
+                 data: serialized_data,
+                 meta: pagy_metadata(@pagy)
+               },
+               status: :ok
       end
 
       def show
@@ -30,30 +37,31 @@ module Api
       end
 
       def create
-        result = Bookmakers::CreateService.call(
-          user: current_user,
-          params: bookmaker_params
-        )
+        result =
+          Bookmakers::CreateService.call(
+            user: current_user,
+            params: bookmaker_params
+          )
 
         if result[:success]
           render json: BookmakerSerializer.new(result[:bookmaker]).serialize,
-          status: :created
+                 status: :created
         else
           render json: {
-            errors: result[:errors]
-          }, status: :unprocessable_entity
+                   errors: result[:errors]
+                 },
+                 status: :unprocessable_entity
         end
       end
 
       private
 
+      def filter_params
+        params.permit(:status, :country, :search)
+      end
+
       def bookmaker_params
-        params.require(:bookmaker).permit(
-          :name,
-          :website,
-          :country,
-          :status
-        )
+        params.require(:bookmaker).permit(:name, :website, :country, :status)
       end
     end
   end

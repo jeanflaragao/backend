@@ -12,13 +12,13 @@ RSpec.describe BookmakerPolicy do
     it "allows access for owner" do
       policy = described_class.new(owner, bookmaker)
 
-      expect(policy.show?).to eq(true)
+      expect(policy.show?).to be(true)
     end
 
     it "denies access for non-owner" do
       policy = described_class.new(other_user, bookmaker)
 
-      expect(policy.show?).to eq(false)
+      expect(policy.show?).to be(false)
     end
   end
 
@@ -26,13 +26,13 @@ RSpec.describe BookmakerPolicy do
     it "allows access for owner" do
       policy = described_class.new(owner, bookmaker)
 
-      expect(policy.update?).to eq(true)
+      expect(policy.update?).to be(true)
     end
 
     it "denies access for non-owner" do
       policy = described_class.new(other_user, bookmaker)
 
-      expect(policy.update?).to eq(false)
+      expect(policy.update?).to be(false)
     end
   end
 
@@ -40,13 +40,13 @@ RSpec.describe BookmakerPolicy do
     it "allows access for owner" do
       policy = described_class.new(owner, bookmaker)
 
-      expect(policy.destroy?).to eq(true)
+      expect(policy.destroy?).to be(true)
     end
 
     it "denies access for non-owner" do
       policy = described_class.new(other_user, bookmaker)
 
-      expect(policy.destroy?).to eq(false)
+      expect(policy.destroy?).to be(false)
     end
   end
 
