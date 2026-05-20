@@ -1,44 +1,25 @@
 module Bookmakers
   class Query
-    def self.call(scope:, filters:)
-      new(scope: scope, filters: filters).call
+    attr_reader :relation, :filters, :sort, :direction
+
+    def initialize(relation:, filters:, sort:, direction:)
+      @relation = relation
+      @filters = filters
+      @sort = sort
+      @direction = direction
     end
 
-    def initialize(scope:, filters:)
-      @scope = scope
-      @filters = filters
+    def self.call(...)
+      new(...).call
     end
 
     def call
-      filter_by_status
-      filter_by_country
-      filter_by_name
+      filtered_relation = FilterQuery.call(relation: relation, filters: filters)
 
-      scope.order(created_at: :desc)
-    end
-
-    private
-
-    attr_reader :scope, :filters
-
-    def filter_by_status
-      return unless filters[:status].present?
-
-      @scope = scope.where(status: filters[:status])
-    end
-
-    def filter_by_country
-      return unless filters[:country].present?
-
-      @scope = scope.where(country: filters[:country])
-    end
-
-    def filter_by_name
-      return unless filters[:search].present?
-
-      @scope = scope.where(
-        "name ILIKE ?",
-        "%#{filters[:search]}%"
+      SortQuery.call(
+        relation: filtered_relation,
+        sort: sort,
+        direction: direction
       )
     end
   end

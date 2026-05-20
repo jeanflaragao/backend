@@ -4,20 +4,15 @@ module Api
       include Authenticatable
 
       def index
-        filtered_bookmakers =
-          Bookmakers::FilterQuery.call(
+        relation =
+          Bookmakers::Query.call(
             relation: policy_scope(Bookmaker),
-            filters: filter_params
-          )
-
-        ordered_bookmakers =
-          Bookmakers::SortQuery.call(
-            relation: filtered_bookmakers,
+            filters: filter_params,
             sort: params[:sort],
             direction: params[:direction]
           )
 
-        @pagy, bookmakers = pagy(ordered_bookmakers)
+        @pagy, bookmakers = pagy(relation)
 
         serialized_data = BookmakerSerializer.new(bookmakers).serializable_hash
 
