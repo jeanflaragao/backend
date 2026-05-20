@@ -3,10 +3,11 @@ module Api
     class HealthController < ApplicationController
       def show
         render json: {
-          status: "ok",
-          service: "backend-api",
-          timestamp: Time.current
-        }, status: :ok
+                 status: "ok",
+                 service: "backend-api",
+                 timestamp: Time.current
+               },
+               status: :ok
       end
     end
   end

@@ -4,42 +4,59 @@ module Api
       include Authenticatable
 
       def index
-        bookmakers = current_user.bookmakers
+        relation =
+          Bookmakers::Query.call(
+            relation: policy_scope(Bookmaker),
+            filters: filter_params,
+            sort: params[:sort],
+            direction: params[:direction]
+          )
 
-        render json: BookmakerSerializer.new(bookmakers).serialize, status: :ok
+        @pagy, bookmakers = pagy(relation)
+
+        serialized_data = BookmakerSerializer.new(bookmakers).serializable_hash
+
+        render json: {
+                 data: serialized_data,
+                 meta: pagy_metadata(@pagy)
+               },
+               status: :ok
       end
 
       def show
-        bookmaker = current_user.bookmakers.find(params[:id])
+        bookmaker = Bookmaker.find(params[:id])
+
+        authorize bookmaker
 
         render json: BookmakerSerializer.new(bookmaker).serialize, status: :ok
       end
 
       def create
-        result = Bookmakers::CreateService.call(
-          user: current_user,
-          params: bookmaker_params
-        )
+        result =
+          Bookmakers::CreateService.call(
+            user: current_user,
+            params: bookmaker_params
+          )
 
         if result[:success]
           render json: BookmakerSerializer.new(result[:bookmaker]).serialize,
-          status: :created
+                 status: :created
         else
           render json: {
-            errors: result[:errors]
-          }, status: :unprocessable_entity
+                   errors: result[:errors]
+                 },
+                 status: :unprocessable_entity
         end
       end
 
       private
 
+      def filter_params
+        params.permit(:status, :country, :search)
+      end
+
       def bookmaker_params
-        params.require(:bookmaker).permit(
-          :name,
-          :website,
-          :country,
-          :status
-        )
+        params.require(:bookmaker).permit(:name, :website, :country, :status)
       end
     end
   end
