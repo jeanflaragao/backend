@@ -10,7 +10,7 @@ module Bookmakers
 
     def initialize(relation:, filters:)
       @relation = relation
-      @filters = filters
+      @filters = filters || {}
     end
 
     def self.call(...)

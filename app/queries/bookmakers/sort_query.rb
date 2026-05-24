@@ -33,7 +33,7 @@ module Bookmakers
     end
 
     def default_order
-      relation.order(created_at: :desc)
+      relation.order(DEFAULT_SORT)
     end
   end
 end
