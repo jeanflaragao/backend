@@ -1,8 +1,8 @@
 module Bookmakers
   class SortQuery
-    SORT_FIELDS = %w[created_at name country status].freeze
+    SORTABLE_FIELDS = %i[name country created_at updated_at].freeze
 
-    DIRECTIONS = %w[asc desc].freeze
+    DEFAULT_SORT = { created_at: :desc }.freeze
 
     attr_reader :relation, :sort, :direction
 
@@ -19,13 +19,17 @@ module Bookmakers
     def call
       return default_order unless valid_sort?
 
-      relation.order(sort => direction)
+      relation.order(sort => normalized_direction)
     end
 
     private
 
     def valid_sort?
-      SORT_FIELDS.include?(sort.to_s) && DIRECTIONS.include?(direction.to_s)
+      SORTABLE_FIELDS.include?(sort&.to_sym)
+    end
+
+    def normalized_direction
+      direction == "asc" ? :asc : :desc
     end
 
     def default_order
