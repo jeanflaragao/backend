@@ -1,12 +1,13 @@
-module Bookmakers
-  class Query
-    attr_reader :relation, :filters, :sort, :direction
+module Queries
+  class BaseQuery
+    attr_reader(:relation, :filters, :sort, :direction, :filter_class)
 
-    def initialize(relation:, filters:, sort:, direction:)
+    def initialize(relation:, filters:, sort:, direction:, filter_class:)
       @relation = relation
       @filters = filters
       @sort = sort
       @direction = direction
+      @filter_class = filter_class
     end
 
     def self.call(...)
@@ -14,7 +15,8 @@ module Bookmakers
     end
 
     def call
-      filtered_relation = FilterQuery.call(relation: relation, filters: filters)
+      filtered_relation =
+        filter_class.call(relation: relation, filters: filters)
 
       SortQuery.call(
         relation: filtered_relation,
