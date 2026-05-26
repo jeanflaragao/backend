@@ -2,8 +2,7 @@ module Bookmakers
   class FilterQuery
     FILTERS = {
       status: Filters::StatusFilter,
-      country: Filters::CountryFilter,
-      search: Filters::SearchFilter
+      country: Filters::CountryFilter
     }.freeze
 
     attr_reader :relation, :filters
