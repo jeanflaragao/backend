@@ -5,13 +5,9 @@ module Api
 
       def index
         relation =
-          BaseQuery.call(
+          Bookmakers::IndexQuery.call(
             relation: policy_scope(Bookmaker),
-            filters: filter_params,
-            search: params[:search],
-            sort: params[:sort],
-            direction: params[:direction],
-            filter_class: ::Bookmakers::FilterQuery,
+            params: params
           )
 
         @pagy, bookmakers = pagy(relation)
