@@ -12,7 +12,6 @@ module Api
             sort: params[:sort],
             direction: params[:direction],
             filter_class: ::Bookmakers::FilterQuery,
-            sort_class: ::Bookmakers::SortQuery
           )
 
         @pagy, bookmakers = pagy(relation)
