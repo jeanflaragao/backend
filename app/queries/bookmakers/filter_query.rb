@@ -1,9 +1,9 @@
 module Bookmakers
   class FilterQuery
-    FILTERS = {
-      status: Filters::StatusFilter,
-      country: Filters::CountryFilter
-    }.freeze
+    FILTERABLE_FIELDS = %i[
+      status
+      country
+    ].freeze
 
     attr_reader :relation, :filters
 
@@ -17,8 +17,10 @@ module Bookmakers
     end
 
     def call
-      FILTERS.reduce(relation) do |scope, (key, filter_class)|
-        filter_class.new(relation: scope, value: filters[key]).call
+      FILTERABLE_FIELDS.reduce(relation) do |scope, field|
+        value = filters[field]
+
+        value.present? ? scope.where(field => value) : scope
       end
     end
   end
