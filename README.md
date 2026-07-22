@@ -2,7 +2,7 @@
 
 # Backend
 
-**Backend Engineering Handbook for the real-money wagering platform.**
+**Backend Engineering Handbook for the betting-operations platform.**
 
 [![CI](https://github.com/jeanflaragao/backend/actions/workflows/ci.yml/badge.svg)](https://github.com/jeanflaragao/backend/actions/workflows/ci.yml)
 [![Ruby](https://img.shields.io/badge/ruby-3.2-CC342D?logo=ruby&logoColor=white)](Dockerfile)
@@ -13,7 +13,7 @@
 </div>
 
 > [!IMPORTANT]
-> This repository is in its **foundation phase**. Domain logic (accounts, wagering, settlement) has not been implemented yet — see [Current Capabilities](#current-capabilities) for what actually exists, and the root [Roadmap](../README.md#roadmap) for what's planned. This handbook captures both: the system as it exists today, and the engineering standards used to evolve it safely.
+> Bookmaker account management (auth, CRUD, authorization, filtering/search/sort, serialization) is implemented and covered by the test suite — see [Current Capabilities](#current-capabilities) for exactly what exists, and the root [Roadmap](../README.md#roadmap) for what's planned (the financial engine: accounts, ledger, bankroll, reconciliation). **CI is scaffolded but currently disabled** (`.github/workflows/ci.yml` is commented out) — it is not yet a merge gate; run `bin/rubocop`, `bin/brakeman`, and `bundle exec rspec` locally. This handbook captures both: the system as it exists today, and the engineering standards used to evolve it safely.
 
 Treat this file as the backend team's **Engineering Handbook**. A new engineer should be able to read it and understand how we build software in this repository: architecture direction, coding conventions, testing philosophy, performance posture, security practices, and review expectations. For conceptual design (diagrams, rationale, long-form architecture), see [docs/architecture/backend.md](../docs/architecture/backend.md).
 
@@ -50,24 +50,28 @@ When a decision conflicts with these conventions, document the trade-off in an A
 
 ## Current Capabilities
 
-Everything listed here exists in the codebase today and is exercised by CI. Nothing in this section is aspirational.
+Everything listed here exists in the codebase today. Nothing in this section is aspirational — planned work lives in the [Roadmap](../README.md#roadmap) instead.
 
 **Application**
 - Ruby on Rails 8.0.5 configured in API-only mode (`config.api_only = true`) — no view layer, no unnecessary middleware.
 - Health-check endpoint (`GET /up`) suitable for load balancer / uptime monitoring integration.
+- JWT authentication (`POST /api/v1/login`, `Jwt::Encoder`/`Jwt::Decoder`, the `Authenticatable` controller concern) — see [docs/architecture/backend.md](../docs/architecture/backend.md).
+- Bookmaker account management (`GET/POST /api/v1/bookmakers`, `GET /api/v1/bookmakers/:id`) — create, list, and show, owned per user. Update and delete are not shipped yet (delete is in progress — see [Roadmap](../README.md#roadmap)).
+- Authorization via Pundit policies (`BookmakerPolicy`), scoping index results to the authenticated user's own records.
+- Query objects for filtering, search, and sort composition (`Bookmakers::IndexQuery` → `FilterQuery` → `SearchQuery` → `SortQuery`) plus pagination via Pagy.
+- JSON serialization via Alba (`BookmakerSerializer`).
 - Encrypted credentials via Rails' built-in credentials store (`config/credentials.yml.enc`), keeping secrets out of source control.
 - Database-backed adapters configured for cache, background jobs, and Action Cable (Solid Cache, Solid Queue, Solid Cable) — the Rails 8 default of avoiding a Redis dependency for these concerns.
 - One-command environment bootstrap (`bin/setup`) and server start (`bin/dev`).
 
-**CI/CD & Quality Gates**
-- GitHub Actions pipeline running on every push and pull request against `main`, with three independent jobs:
-  - **Security scanning** — [Brakeman](https://brakemanscanner.org/) static analysis for common Rails vulnerabilities.
-  - **Linting** — [RuboCop](https://github.com/rails/rubocop-rails-omakase) with the Rails Omakase house style.
-  - **Automated tests** — the Minitest suite, run against a real PostgreSQL service container (not mocked).
+**Testing & Quality Tooling**
+- RSpec + FactoryBot test suite (request specs, model specs, policy specs, service specs) — see [Testing Conventions](#testing-conventions).
+- RuboCop (Rails Omakase + `rubocop-performance` + `rubocop-rspec`) and Brakeman available via `bin/rubocop` / `bin/brakeman`.
+- A GitHub Actions workflow exists (`.github/workflows/ci.yml`, security scan + lint + test) but is **currently disabled** (commented out) — it is not yet enforced on push/PR. Re-enabling it is tracked in the [Roadmap](../README.md#roadmap).
 - Dependabot configured for both `bundler` and `github-actions` ecosystems, checked daily.
 - Kamal deployment configuration scaffolded (`config/deploy.yml`, `.kamal/`) for containerized, zero-downtime deploys, fronted by Thruster for asset caching/compression.
 
-For the target architecture this is being built toward — service objects, policies, query objects — see [docs/architecture/backend.md](../docs/architecture/backend.md).
+For the target architecture this is being built toward — the financial engine's services, additional policies, and query objects — see [docs/architecture/backend.md](../docs/architecture/backend.md).
 
 ## Technology Stack
 
@@ -81,17 +85,20 @@ For the target architecture this is being built toward — service objects, poli
 | Puma | ≥ 5.0 | Application server | Rails' default; no reason to deviate yet. |
 | Solid Queue | Rails 8 default | Database-backed background job adapter | Avoids running Redis for jobs that don't yet need sub-millisecond latency — one fewer moving part locally and in staging. |
 | Solid Cache | Rails 8 default | Database-backed `Rails.cache` adapter | Same rationale as Solid Queue. |
-| Solid Cable | Rails 8 default | Database-backed Action Cable adapter | Configured by default; unused until a real-time feature (e.g. live odds) needs it. |
+| Solid Cable | Rails 8 default | Database-backed Action Cable adapter | Configured by default; unused until a real-time feature (e.g. live notifications) needs it. |
 | Bootsnap | latest | Boot-time caching for faster startup | Standard Rails optimization. |
+| JWT (`jwt`) | latest | Stateless authentication tokens | Simple bearer-token auth suited to an API-only backend with no server-side session store. |
+| Pundit | latest | Authorization policies | Explicit, testable policy objects per resource rather than authorization logic embedded in controllers/models. |
+| Pagy | ~> 9.1 | Pagination | Minimal-overhead pagination without loading unnecessary gem weight for a concern this narrow. |
+| Alba | latest | JSON serialization | Fast, explicit serializers with straightforward attribute remapping (e.g. exposing `website` as `homepage`). |
 
 ### Testing
 
 | Tool | Role | Status |
 |---|---|---|
-| Minitest | Default Rails test framework | Present (scaffold, no application tests yet) |
-| Brakeman | Static security analysis | Active in CI |
-| RSpec + FactoryBot | Target spec-style testing stack | Planned |
-| Request specs | HTTP-boundary contract testing | Planned |
+| RSpec + FactoryBot | Primary testing stack | Active |
+| Request specs | HTTP-boundary contract testing | Active — the default test type for new endpoints |
+| Brakeman | Static security analysis | Available locally (`bin/brakeman`); not yet enforced in CI (disabled — see [Current Capabilities](#current-capabilities)) |
 | SimpleCov | Coverage reporting | Planned |
 
 ### Developer Experience
@@ -117,26 +124,31 @@ For the target architecture this is being built toward — service objects, poli
 ```text
 backend/                       # git submodule → github.com/jeanflaragao/backend
 ├── app/
-│   ├── controllers/           # ApplicationController (ActionController::API)
-│   ├── jobs/                  # ApplicationJob (Solid Queue)
+│   ├── controllers/
+│   │   ├── api/v1/            # AuthenticationController, BookmakersController, HealthController
+│   │   └── concerns/           # Authenticatable (JWT), ErrorHandler
+│   ├── errors/                 # ApplicationError + domain-specific error classes
+│   ├── jobs/                   # ApplicationJob (Solid Queue)
 │   ├── mailers/
-│   └── models/                # ApplicationRecord
+│   ├── models/                 # ApplicationRecord, User, Bookmaker
+│   ├── policies/                # Pundit policies (BookmakerPolicy, ...)
+│   ├── queries/                 # Filter/search/sort query objects
+│   ├── serializers/             # Alba serializers
+│   └── services/                 # Business-logic services (Bookmakers::CreateService, Jwt::Encoder/Decoder, ...)
 ├── config/
-│   ├── application.rb         # API-only mode, autoloading
-│   ├── database.yml           # PostgreSQL, env-driven credentials
-│   ├── deploy.yml              # Kamal deployment config
-│   └── routes.rb               # currently: health check only
-├── db/                         # cache/cable/queue schemas + seeds
-├── test/                       # Minitest scaffold
+│   ├── application.rb          # API-only mode, autoloading
+│   ├── database.yml            # PostgreSQL, env-driven credentials
+│   ├── deploy.yml               # Kamal deployment config
+│   └── routes.rb                # /api/v1: health, login, bookmakers (create/index/show)
+├── db/                          # schema + cache/cable/queue tables + seeds
+├── spec/                        # RSpec suite: requests, models, policies, services + factories/support
 ├── .github/
-│   ├── workflows/ci.yml        # security scan · lint · test
+│   ├── workflows/ci.yml         # security scan · lint · test (currently disabled)
 │   └── dependabot.yml
-├── Dockerfile                  # production multi-stage build
+├── Dockerfile                   # production multi-stage build
 ├── Gemfile / Gemfile.lock
-└── .rubocop.yml                 # Rails Omakase house style
+└── .rubocop.yml                  # Rails Omakase house style
 ```
-
-As services, policies, and query objects are added, they will live under `app/services/`, `app/policies/`, and `app/queries/` respectively, following the layering in [docs/architecture/backend.md](../docs/architecture/backend.md#layer-responsibility-matrix).
 
 ## Architecture Philosophy
 
@@ -155,7 +167,7 @@ The architecture should evolve incrementally. Prefer introducing one explicit la
 The principles below are used as engineering heuristics rather than rigid rules. Whenever a design decision requires violating one of them, the trade-off should be explicit and documented (see [ADRs](../docs/adr/README.md)).
 
 - **Thin controllers.** Controllers translate HTTP; they do not contain business logic. That logic belongs in service objects.
-- **Service objects for use cases.** Multi-step business processes (placing a bet, settling a market) are modeled as single-purpose, testable objects rather than spread across callbacks and controller actions.
+- **Service objects for use cases.** Multi-step business processes (recording a deposit, reconciling an account) are modeled as single-purpose, testable objects rather than spread across callbacks and controller actions.
 - **Separation of concerns.** Persistence (models), authorization (policies), business logic (services), and complex reads (query objects) are deliberately kept in separate layers.
 - **SOLID, applied pragmatically.** Single-responsibility objects and dependency boundaries are favored over generic, prematurely abstract frameworks-within-the-framework.
 - **Convention over configuration.** Rails defaults are used unless there's a concrete reason to deviate — evidenced by the current API-only, Omakase-styled, database-backed-adapter configuration.
@@ -205,7 +217,7 @@ As the API surface grows, centralize error translation in controller concerns or
 
 Service objects should represent a single use case or workflow.
 
-- Naming: use verb-oriented names (`CreateService`, `SettleMarketService`) and keep namespace aligned with the domain area.
+- Naming: use verb-oriented names (`Bookmakers::CreateService`, `Accounts::RecordDepositService`) and keep namespace aligned with the domain area.
 - Contract: define explicit inputs and outputs; avoid returning mixed ad-hoc hashes.
 - Purity at boundary: accept primitives/value objects where possible and return a predictable result type.
 - Transactions: define transaction boundaries in the service when multiple writes must be atomic.
@@ -254,32 +266,24 @@ Requires a `.env` (loaded via `dotenv-rails`) with `DATABASE_HOST`, `DATABASE_PO
 
 ## Testing Conventions
 
-The current setup uses Rails' default **Minitest** suite, exercised in CI (`bin/rails db:test:prepare test`) against a real PostgreSQL service container rather than a mocked database — a deliberate choice carried forward as the suite grows, so that CI reflects production database behavior.
+The suite is **RSpec + FactoryBot**, run against a real PostgreSQL database (not mocked) — request specs are the default test type for new endpoints, verifying behavior at the HTTP boundary rather than reaching into controller internals. `authenticated_headers(user)` (`spec/support/authentication_helper.rb`, mixed into `type: :request` specs) builds the JWT header for authenticated requests.
 
-Current and target testing conventions:
+Conventions:
 
-- Prefer behavior-focused tests at the HTTP boundary for API endpoints.
-- Add focused unit tests for domain logic in services, policies, and query objects.
+- Prefer behavior-focused request specs at the HTTP boundary for API endpoints.
+- Add focused unit specs for domain logic in services, policies, and query objects.
+- Use FactoryBot factories (`spec/factories`) for test data; avoid fixtures.
 - Keep tests deterministic (fixed time/random seeds where relevant).
 - Avoid over-mocking ActiveRecord behavior that integration tests can verify more honestly.
 - Treat flaky tests as defects and fix before merging.
 
-No application-level tests exist yet for many business flows, because that domain logic has not been implemented.
-
 ```bash
-bin/rails test                          # full suite
-bin/rails test test/models/foo_test.rb  # single file
-bin/rails test test/models/foo_test.rb:12   # single test at line 12
+bundle exec rspec                                    # full suite
+bundle exec rspec spec/models/bookmaker_spec.rb       # single file
+bundle exec rspec spec/models/bookmaker_spec.rb:12     # single example at line 12
 ```
 
-Tests run in parallel by default (`parallelize(workers: :number_of_processors)` in `test/test_helper.rb`).
-
-**Planned testing direction** (tracked in the [Roadmap](../README.md#roadmap)):
-- Migration to **RSpec** as the primary testing framework, with **FactoryBot** replacing fixtures for test data construction.
-- **Request specs** as the default test type for new endpoints — verifying behavior at the HTTP boundary rather than reaching into controller internals.
-- **Service specs** covering business logic in isolation from HTTP and persistence concerns.
-- **SimpleCov** integrated into CI to track and enforce coverage as the domain layer is built out.
-- Brakeman remains as the static security gate regardless of the spec framework used.
+**Planned** (tracked in the [Roadmap](../README.md#roadmap)): **SimpleCov** integrated into CI to track and enforce coverage as the financial-engine domain layer is built out. Brakeman remains the static security gate regardless of coverage tooling.
 
 ## Naming Conventions
 
@@ -328,4 +332,4 @@ bin/rubocop     # Rails Omakase style — .rubocop.yml just inherits the gem's c
 bin/brakeman    # static security analysis
 ```
 
-Both run in CI (`.github/workflows/ci.yml`) alongside the test suite, as independent jobs, on every push and PR to `main`.
+Both are also scaffolded as independent jobs in `.github/workflows/ci.yml` alongside the test suite, but that workflow is currently disabled (see [Current Capabilities](#current-capabilities)) — run them locally until it's re-enabled.
