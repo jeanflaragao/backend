@@ -22,10 +22,8 @@ module Api
       end
 
       def show
-        bookmaker = Bookmaker.find(params[:id])
-
+        bookmaker = current_user.bookmakers.find(params[:id])
         authorize bookmaker
-
         render json: BookmakerSerializer.new(bookmaker).serialize, status: :ok
       end
 
@@ -45,6 +43,13 @@ module Api
                  },
                  status: :unprocessable_entity
         end
+      end
+
+      def destroy
+        bookmaker = current_user.bookmakers.find(params[:id])
+        authorize bookmaker
+        Bookmakers::DestroyService.call(bookmaker:)
+        head :no_content
       end
 
       private

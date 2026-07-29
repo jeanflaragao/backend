@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::API
   include Pundit::Authorization
   include Pagy::Backend
+  include ErrorHandler
 
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
   rescue_from Pundit::NotAuthorizedError, with: :render_forbidden
@@ -9,14 +10,10 @@ class ApplicationController < ActionController::API
   private
 
   def render_not_found
-    render json: {
-      error: "Not found"
-    }, status: :not_found
+    render json: { error: "Not found" }, status: :not_found
   end
 
   def render_forbidden
-    render json: {
-      error: "Forbidden"
-    }, status: :forbidden
+    render json: { error: "Forbidden" }, status: :forbidden
   end
 end

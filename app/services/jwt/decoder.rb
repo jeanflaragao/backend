@@ -10,8 +10,8 @@ module Jwt
           { algorithm: "HS256" }
         )
       decoded_token.first
+    rescue JWT::DecodeError
+      nil
     end
-  rescue JWT::DecodeError
-    nil
   end
 end
