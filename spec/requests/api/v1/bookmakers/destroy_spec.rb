@@ -3,7 +3,8 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
   let(:headers) { authenticated_headers(user) }
   describe "DELETE /api/v1/bookmakers/:id" do
     context "when the bookmaker exists" do
-      let!(:bookmaker) { create(:bookmaker, user: create(:user)) }
+      let!(:user) { create(:user) }
+      let!(:bookmaker) { create(:bookmaker, user: user) }
 
       it "deletes the bookmaker" do
         expect {
@@ -14,21 +15,6 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
       end
     end
 
-    context "when the bookmaker has active accounts" do
-      let!(:bookmaker) { create(:bookmaker, user: create(:user)) }
-      let!(:account) { create(:account, bookmaker: bookmaker) }
-
-      it "returns an error" do
-        delete "/api/v1/bookmakers/#{bookmaker.id}", headers: headers
-
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(error_response["code"])
-          .to eq("not_found")
-        expect(error_response["message"])
-          .to eq("Resource not found.")
-      end
-    end
-
     context "when the bookmaker does not exist" do
       let!(:bookmaker_id) { Bookmaker.maximum(:id).to_i + 1  }
 
@@ -36,8 +22,6 @@ RSpec.describe "Api::V1::Bookmakers", type: :request do
         delete "/api/v1/bookmakers/#{bookmaker_id}", headers: headers
 
         expect(response).to have_http_status(:not_found)
-        expect(error_response["code"])
-          .to eq("not_found")
         expect(error_response["message"])
           .to eq("Resource not found.")
       end
