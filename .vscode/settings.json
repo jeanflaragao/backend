@@ -5,5 +5,8 @@
   },
 
   "rubyLsp.formatter": "syntax_tree",
-  "rubyLsp.linters": ["rubocop"]
+  "rubyLsp.linters": ["rubocop"],
+  "chat.tools.terminal.autoApprove": {
+    "bundle": true
+  }
 }
